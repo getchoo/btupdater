@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+################
+# btupdater - a small bash script for updating northstar on linux
+################
+
+## constants
+REPO=R2Northstar/Northstar
+BTUPDATER_DOTDIR="$HOME/.config/btupdater"
+BTUPDATER_CONF="$BTUPDATER_DOTDIR/btupdater.conf"
+
+function get_path() {
+  ## make config file and get titanfall path
+  mkdir -p "$BTUPDATER_DOTDIR"
+  touch "$BTUPDATER_CONF"
+
+  echo "what is the absolute path to titanfall 2?"
+  read -r tf_path
+  echo "tf_path=$tf_path" > "$BTUPDATER_CONF"
+}
+
+function setup_conf() {
+  ## check for conf file and titanfall path variable
+  if [ -f "$BTUPDATER_CONF" ]
+  then
+    source "$BTUPDATER_CONF"
+  fi
+
+  if [ -z "$tf_path" ]
+  then
+    echo "it looks like you're running btupdater for the first time. making a config file..."
+    get_path
+  fi
+}
+
+function get_current_version() {
+  ## check for current release
+  if [ ! -f "$tf_path/ns_version.txt" ]
+  then
+    echo "NULL"
+  else
+    cat "$tf_path/ns_version.txt"
+  fi
+}
+
+# https://gist.github.com/lukechilds/a83e1d7127b78fef38c2914c4ececc3c
+function repo_api_request() {
+  ## get info from latest release
+  curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" |
+    grep "\"$1\":" |
+    sed -E 's/.*"([^"]+)".*/\1/'
+}
+
+function update_northstar() {
+  download_url="$(repo_api_request browser_download_url)"
+  echo "downloading..."
+  curl -fsSLo "$tf_path/northstar-$newest_version.zip" "$download_url"
+  echo "unziping..."
+  unzip -q -o "$tf_path/northstar-$newest_version.zip" -d "$tf_path/"
+  echo "updating version number"
+  echo "$newest_version" > "$tf_path/ns_version.txt"
+  echo "done."
+}
+
+## get stuff for main function
+setup_conf
+current_version=$(get_current_version 2>&1)
+echo "current version is $current_version"
+newest_version=$(repo_api_request tag_name 2>&1)
+echo "newest version is $newest_version"
+
+## check if updated is needed
+if [ "$current_version" == "$newest_version" ]
+then
+  echo "northstar is update to date."
+  exit
+## check if northstar is installed
+elif [ "$current_version" == NULL ]
+then
+  echo "installing northstar for the first time..."
+## update otherwise
+else
+  echo "northstar is out of date. getting the newest release..."
+fi
+
+update_northstar
+exit
