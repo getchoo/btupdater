@@ -72,7 +72,7 @@ echo "newest version is $newest_version"
 ## check if updated is needed
 if [ "$current_version" == "$newest_version" ]
 then
-  echo "northstar is update to date."
+  echo "northstar is already up to date."
   exit
 ## check if northstar is installed
 elif [ "$current_version" == NULL ]
